@@ -7,7 +7,14 @@
 //
 
 import Foundation
+import MapKit
 
 struct WC {
     let name: String
+    let latitude: Double
+    let longitude: Double
+    
+    var coordinate: CLLocationCoordinate2D {
+        return CLLocationCoordinate2DMake(latitude, longitude)
+    }
 }

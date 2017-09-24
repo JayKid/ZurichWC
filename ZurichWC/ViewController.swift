@@ -8,19 +8,22 @@
 
 import UIKit
 
-class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
+class ViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout {
 
-    @IBOutlet weak var tableView: UITableView!
+    @IBOutlet weak var collectionView: UICollectionView!
     
     var wcList = [WC]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
-        tableView.delegate = self
-        tableView.dataSource = self
+        collectionView.delegate = self
+        collectionView.dataSource = self
         title = "Zurich WC list"
         retrieveWCs()
+        let nib = UINib(nibName: "WCCell", bundle: nil)
+        navigationController?.hidesBarsOnSwipe = true
+        collectionView.register(nib, forCellWithReuseIdentifier: WCCell.reuseIdentifier)
     }
     
     func retrieveWCs() {
@@ -42,14 +45,18 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
                         
                         self.wcList = features.map { wcInformation in
                             
-                            guard let properties = wcInformation["properties"] as? [AnyHashable: Any],
-                                  let name = properties["name"] as? String
-                                    else { return WC(name: "fuckedName") }
-                            return WC(name: name)
+                            guard
+                                let properties = wcInformation["properties"] as? [AnyHashable: Any],
+                                let name = properties["name"] as? String,
+                                let geometry = wcInformation["geometry"] as? [AnyHashable: Any],
+                                let coordinates = geometry["coordinates"] as? [Double]
+                                else { return WC(name: "fuckedName", latitude: 47.3849233346832, longitude: 8.54772153706787)
+                                }
+                            return WC(name: name, latitude: coordinates[1], longitude: coordinates[0])
                         }.filter { wc in
                             return wc.name != "fuckedName"
                         }
-                        self.tableView.reloadData()
+                        self.collectionView.reloadData()
                     }
                 }
                 
@@ -68,23 +75,49 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
     }
-
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        performSegue(withIdentifier: "showDetail", sender: self)
+    
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        let cell = collectionView.cellForItem(at: indexPath)
+        UIView.animate(withDuration: 0.2, delay: 0.0, options: [.curveEaseIn], animations: {
+            cell?.transform = CGAffineTransform(scaleX: 0.9, y: 0.9)
+        }, completion: { _ in
+            UIView.animate(withDuration: 0.2, delay: 0.0, usingSpringWithDamping: 0.1, initialSpringVelocity: 0.2, options: [], animations: {
+                cell?.transform = CGAffineTransform.identity
+            }, completion: nil)
+        })
+        
     }
     
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = UITableViewCell(style: .default, reuseIdentifier: "wcCell")
-        cell.textLabel?.text = wcList[indexPath.row].name
-        return cell
-    }
-    
-    func numberOfSections(in tableView: UITableView) -> Int {
+    func numberOfSections(in collectionView: UICollectionView) -> Int {
         return 1
     }
     
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return wcList.count
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+        let size = (collectionView.bounds.width) - 40
+        return CGSize(width: size, height: size)
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAt section: Int) -> CGFloat {
+        return 20
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, insetForSectionAt section: Int) -> UIEdgeInsets {
+        return UIEdgeInsets(top: 20, left: 20, bottom: 20, right: 20)
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        
+        let cell = collectionView.dequeueReusableCell(
+            withReuseIdentifier: WCCell.reuseIdentifier,
+            for: indexPath) as! WCCell
+        
+        cell.configure(wcList[indexPath.row])
+        
+        return cell
     }
 }
 
