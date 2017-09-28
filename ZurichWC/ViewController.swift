@@ -39,28 +39,13 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
                     self.alertError()
                 } else {
                     if let data = data,
-                        let wrappedJson = try? JSONSerialization.jsonObject(with: data, options: .allowFragments),
-                        let json = wrappedJson as? [AnyHashable: Any],
-                        let features = json["features"] as? [[AnyHashable: Any]] {
-                        
-                        self.wcList = features.map { wcInformation in
-                            
-                            guard
-                                let properties = wcInformation["properties"] as? [AnyHashable: Any],
-                                let name = properties["name"] as? String,
-                                let geometry = wcInformation["geometry"] as? [AnyHashable: Any],
-                                let coordinates = geometry["coordinates"] as? [Double]
-                                else { return WC(name: "fuckedName", latitude: 47.3849233346832, longitude: 8.54772153706787)
-                                }
-                            return WC(name: name, latitude: coordinates[1], longitude: coordinates[0])
-                        }.filter { wc in
-                            return wc.name != "fuckedName"
+                        let wcList = try? JSONDecoder().decode(WCStore.self, from: data).values {
+                            self.wcList = wcList
                         }
                         self.collectionView.reloadData()
                     }
                 }
-                
-            }
+            
             }.resume()
     }
     
